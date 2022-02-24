@@ -31,7 +31,6 @@ packages:
 #   - wai
 packages:
 - .
-- ../hssh
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
@@ -39,8 +38,8 @@ packages:
 #
 
 extra-deps:
-  #  - github: aryzach/haskell-ssh
-  #  commit: 9994dac03ad183d59d469dfbfa2ad787e93678e0
+  - github: aryzach/hssh
+    commit: 53d676e4846cdbaae349fb60b00bb669cc9a88c3
   - socket-unix-0.2.0.0@sha256:8cecd07268b14ba47b13e7855f9862f3ce34a7079ccf21ea97057f6bd4f6fb66,3058
 
 
