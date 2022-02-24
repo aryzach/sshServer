@@ -18,5 +18,6 @@ RUN stack build
 
 CMD ["stack", "run", "main"]
 
+# I think this needs to be NAT or something: docker network create --subnet=172.20.0.0/20 sshservernetwork
 # docker build -t sshserverrunimg .
-# docker run -p 2023:2023 -d --name sshServerRunCntr sshserverrunimg 
+# docker run --net sshservernetwork --ip 172.20.0.10 -p 2023:2023 -d --name sshServerRunCntr sshserverrunimg 
