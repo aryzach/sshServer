@@ -43,7 +43,7 @@ main = do
   --bracket open close (accept config privateKey)
     where
         config = def
-                { Server.socketConfig             = def { Server.socketBindAddresses = pure (Address "172.31.14.100" 2023)}
+                { Server.socketConfig             = def { Server.socketBindAddresses = pure (Address "172.31.14.100" 2024)}
                 , Server.transportConfig          = def 
                         { onSend = \x -> putStrLn ("CLIENT: " ++ show x)
                         , onReceive = \x -> putStrLn ("SERVER: " ++ show x)
