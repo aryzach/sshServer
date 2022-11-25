@@ -24,6 +24,15 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+  - network
+  - bytestring
+  - data-default
+  - text
+  - memory
+  - socket
+  - hssh
+
 
 executables:
   main:
@@ -34,14 +43,9 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - network
-    - bytestring
-    - data-default
-    - text
     - sshServer
-    - memory
-    - socket
     - hssh
+    - data-default
 
 tests:
   sshServer-test:
