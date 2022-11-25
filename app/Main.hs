@@ -72,24 +72,6 @@ main = do
                                 (const $ S.close stream)
                                 -}
 
-{-
-handleDirectTcpIpRequest :: identity -> DirectTcpIpRequest -> IO (Maybe Server.DirectTcpIpHandler)
-handleDirectTcpIpRequest idnt req = pure $ Just $ Server.DirectTcpIpHandler $ \stream-> do
-  bs <- receive stream 4096
-  sendAll stream "HTTP/1.1 200 OK\n"
-  sendAll stream "Content-Type: text/plain\n\n"
-  sendAll stream $! BS.pack $ fmap (fromIntegral . fromEnum) $ show req
-  sendAll stream "\n\n"
-  sendAll stream bs
-  print bs
-  -}
-
-{-
-handleSessionRequest :: identity -> Server.SessionRequest -> IO (Maybe Server.SessionHandler)
-handleSessionRequest idnt req = pure $ Just $ Server.SessionHandler $ \_ _ _ _ stdout _ -> do
-    sendAll stdout "Hello world!\n"
-    pure ExitSuccess
-    -}
 
 handleSessionRequest :: (Show user) => state -> user -> IO (Maybe Server.SessionHandler)
 handleSessionRequest state user = pure $ Just $ Server.SessionHandler $ mySessionHandler state user BS.empty
@@ -99,17 +81,11 @@ mySessionHandler state user previousCommandBytes a b c stdin stdout d = do
     p <- receive stdin 1024
     let currentCommandBytes = (BS.append previousCommandBytes p)
     sendAll stdout p
-    if lastIsCarriageReturn $ TE.decodeUtf8 p
-      then do
-        sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes
-        mySessionHandler state user BS.empty a b c stdin stdout d 
-      else do
-        mySessionHandler state user currentCommandBytes a b c stdin stdout d 
+    case unsnoc (TE.decodeUtf8 p) of
+			Just (_,'\r') -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> mySessionHandler state user BS.empty a b c stdin stdout d 
+			Just (_,'\ETX') -> pure ExitSuccess
+			_ -> mySessionHandler state user currentCommandBytes a b c stdin stdout d 
 
-lastIsCarriageReturn :: T.Text -> Bool
-lastIsCarriageReturn t = case unsnoc t of
-  Just (_,l) -> l == '\r'
-  Nothing -> False
 
 handleBSCommand :: BS.ByteString -> BS.ByteString
 handleBSCommand bs = bs
@@ -130,7 +106,7 @@ createResponseContent userCommand = case isUserCommand (stripAll userCommand) of
   Just CD -> "new dir"
   Nothing -> "bad command"
 
-data UserCommand = LS | CD
+data UserCommand = LS | CD 
 
 isUserCommand :: String -> Maybe UserCommand
 isUserCommand "ls" = Just LS
