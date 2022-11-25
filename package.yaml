@@ -27,7 +27,7 @@ library:
 
 executables:
   main:
-    main:                Main2.hs
+    main:                Main.hs
     source-dirs:         app
     ghc-options:
     - -threaded

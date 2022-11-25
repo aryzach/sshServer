@@ -3,69 +3,98 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Debug.Trace
-import           Network.Socket                
-import qualified Network.Socket.ByteString     as SBS                
-
+import           Network.Socket
+import qualified Network.Socket.ByteString      as SBS
+import           Control.Concurrent             ( forkFinally
+    )
+import           Control.Exception              ( bracket
+    , bracketOnError
+    , handle
+    , throwIO
+    )
 import           Control.Monad                  ( forever
-                                                , void
-                                                )
---import qualified Data.ByteArray                as BA
+    , void
+    )
+import qualified Data.ByteArray                as BA
 import qualified Data.ByteString               as BS
-import           Data.ByteString.Char8         as C8 hiding (putStrLn, unsnoc, snoc, map, filter)
 import           Data.Default
 import           System.Exit
 
---import qualified System.Socket                  as S
---import qualified System.Socket.Family.Inet6     as S
---import qualified System.Socket.Protocol.Default as S
---import qualified System.Socket.Type.Stream      as S
---import qualified System.Socket.Unsafe           as S
+import qualified System.Socket                  as S
+import qualified System.Socket.Family.Inet      as S
+import qualified System.Socket.Protocol.Default as S
+import qualified System.Socket.Type.Stream      as S
+import qualified System.Socket.Unsafe           as S
 
 import           Network.SSH
-import           Network.SSH.Server            as Server
-import           Network.SSH.Internal
+import qualified Network.SSH.Server            as Server
+
 import           Data.Text                     as T hiding (map, filter)
 import           Data.Text.Encoding            as TE
 
+import           Data.ByteString.Char8         as C8 hiding (putStrLn, unsnoc, snoc, map, filter)
+
 main :: IO ()
 main = do
-    _ <- putStrLn "start"
-    keyPair <- newKeyPair
-    _ <- putStrLn "before runServer"
-    let hints = defaultHints { addrFlags = [AI_NUMERICHOST, AI_NUMERICSERV], addrSocketType = Stream }
-    addr:_ <- getAddrInfo (Just hints) (Just "127.0.0.1") (Just "5000")
-    sock <- socket (addrFamily addr) (addrSocketType addr) (addrProtocol addr)
-    Network.Socket.bind sock (addrAddress addr)
-    listen sock 1
-    (s,_) <- accept sock
-    putStrLn "after accept"
-    serve config keyPair sock
-    putStrLn "after serve"
-    pure ()
-  where
-    config = def
-        { --Server.socketConfig             = def { Server.socketBindAddresses = pure (Address "*" 2023)}
-          transportConfig          = def {
-                onSend = \x -> putStrLn ("CLIENT: " ++ show x),
-                onReceive = \x -> putStrLn ("SERVER: " ++ show x)
-            }
-        , userAuthConfig           = def
-            { onAuthRequest        = \username _ _ -> putStrLn "auth req" >> pure (Just username)
-            }
-        , connectionConfig         = def
-            { onSessionRequest     = handleSessionRequest
-            --, onDirectTcpIpRequest = handleDirectTcpIpRequest
-            }
-        --, onConnect                = \_ -> do
-        --    pure (Just ())
-        }
+  --file                <- BS.readFile "./resources/id_rsa"
+  --(privateKey, _) : _ <- decodePrivateKeyFile BS.empty file :: IO [(KeyPair, BA.Bytes)]
+  privateKey <- newKeyPair
+  Server.runServer config privateKey
+  --bracket open close (accept config privateKey)
+    where
+        config = def
+                { Server.socketConfig             = def { Server.socketBindAddresses = pure (Address "172.31.14.100" 2024)}
+                , Server.transportConfig          = def 
+                        { onSend = \x -> putStrLn ("CLIENT: " ++ show x)
+                        , onReceive = \x -> putStrLn ("SERVER: " ++ show x)
+                        }
+                , Server.userAuthConfig           = def
+                        { Server.onAuthRequest        = \_ username _ _ _ -> pure (Just username)
+                        }
+                , Server.connectionConfig         = def
+                        { Server.onSessionRequest     = handleSessionRequest
+                        --, Server.onDirectTcpIpRequest = handleDirectTcpIpRequest
+                        }
+                , Server.onConnect                = \_ -> do pure (Just ())
+                }
+        {-
+        open  = S.socket :: IO (S.Socket S.Inet S.Stream S.Default)
+        close = S.close
+        accept config agent s = do
+                S.setSocketOption s (S.ReuseAddress True)
+                --S.setSocketOption s (S.V6Only False)
+                S.bind s (S.SocketAddressInet S.inetLoopback 2200)
+                S.listen s 5
+                forever $ bracketOnError (S.accept s) (S.close . fst) $ \(stream, peer) -> do
+                        putStrLn $ "Connection from " ++ show peer
+                        void $ forkFinally
+                                (Server.serve config agent stream)
+                                (const $ S.close stream)
+                                -}
 
+{-
+handleDirectTcpIpRequest :: identity -> DirectTcpIpRequest -> IO (Maybe Server.DirectTcpIpHandler)
+handleDirectTcpIpRequest idnt req = pure $ Just $ Server.DirectTcpIpHandler $ \stream-> do
+  bs <- receive stream 4096
+  sendAll stream "HTTP/1.1 200 OK\n"
+  sendAll stream "Content-Type: text/plain\n\n"
+  sendAll stream $! BS.pack $ fmap (fromIntegral . fromEnum) $ show req
+  sendAll stream "\n\n"
+  sendAll stream bs
+  print bs
+  -}
 
-handleSessionRequest :: (Show state, Show user) => state -> user -> IO (Maybe SessionHandler)
-handleSessionRequest state user = pure $ Just $ SessionHandler $ mySessionHandler state user BS.empty
+{-
+handleSessionRequest :: identity -> Server.SessionRequest -> IO (Maybe Server.SessionHandler)
+handleSessionRequest idnt req = pure $ Just $ Server.SessionHandler $ \_ _ _ _ stdout _ -> do
+    sendAll stdout "Hello world!\n"
+    pure ExitSuccess
+    -}
+
+handleSessionRequest :: (Show user) => state -> user -> IO (Maybe Server.SessionHandler)
+handleSessionRequest state user = pure $ Just $ Server.SessionHandler $ mySessionHandler state user BS.empty
   
-mySessionHandler :: (Show state, Show user, InputStream stdin, OutputStream stdout, OutputStream stderr) => state -> user -> BS.ByteString -> Environment -> Maybe TermInfo -> Maybe Command -> stdin -> stdout -> stderr -> IO ExitCode     
+mySessionHandler :: (Show user, InputStream stdin, OutputStream stdout, OutputStream stderr) => state -> user -> BS.ByteString -> Environment -> Maybe TermInfo -> Maybe Command -> stdin -> stdout -> stderr -> IO ExitCode     
 mySessionHandler state user previousCommandBytes a b c stdin stdout d = do
     p <- receive stdin 1024
     let currentCommandBytes = (BS.append previousCommandBytes p)
@@ -111,31 +140,4 @@ isUserCommand _    = Nothing
 stripAll :: String -> String
 stripAll s = filter (\char -> char /= '\n' && char /= '\r') s
 
-instance DuplexStream Socket 
 
-instance InputStream Socket where
-  peek = SBS.recv
-  receive = SBS.recv
-
-instance OutputStream Socket where
-  send = SBS.send 
-
-{- TODO
- - ctrl-C to exit
- - strip whitespace before command
- - add '#' or whatever before user types
- - make game
- - figure out how to allow the play the game from the ssh session
- - make game with graphics similar to multi-facotr QR code from work
- -}
-
---createResponseContent :: T.Text -> T.Text
---createResponseContent text = T.pack $ 
-     
-
--- T.pack :: String -> Text
--- T.unpack :: Text -> String
--- C8.pack :: String -> ByteString
--- C8.unpack :: ByteString -> String
--- TE.encodeUtf8 :: Text -> ByteString
--- TE.decodeUtf8 :: ByteString -> Text
