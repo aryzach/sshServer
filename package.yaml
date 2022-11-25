@@ -27,7 +27,7 @@ library:
 
 executables:
   main:
-    main:                Main2.hs
+    main:                Main.hs
     source-dirs:         app
     ghc-options:
     - -threaded
@@ -42,6 +42,17 @@ executables:
     - memory
     - socket
     - hssh
+    - vty
+    - unix
+    - text
+
+  game:
+    main:                Game.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
 
 tests:
   sshServer-test:
