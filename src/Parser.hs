@@ -4,29 +4,44 @@ import Text.ParserCombinators.Parsec
 import qualified Text.ParserCombinators.Parsec as PC
 import Control.Monad (void)
 
-data Command  = C [String] 
+data Command  = Cat String
               | Esc
               | Ls
               deriving (Eq,Show)
 
 full :: Parser Command
-full = try (line ls) <|> escape
+full = try userCommands <|> escape
 
 line :: Parser Command -> Parser Command
 line p = do
+  whitespace
   c <- p
-  eol 
+  whitespace
+  eol
   return c
+
+userCommands :: Parser Command
+userCommands = choice $ map line [ls, cat]
 
 ls :: Parser Command
 ls = do
-  whitespace 
   string "ls"
-  whitespace
   return Ls
 
-cell :: Parser String
-cell = many $ noneOf " \n\t\r\ETX"
+cat :: Parser Command
+cat = do
+  string "cat"
+  char ' '
+  whitespace
+  x <- fileName
+  return $ Cat x
+
+fileName :: Parser String
+fileName = do
+  name <- many alphaNum
+  dot  <- char '.'
+  md   <- string "md"
+  return name
 
 eol :: Parser ()
 eol = void $ char '\r'

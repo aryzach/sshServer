@@ -35,16 +35,7 @@ recurrentSessionHandler previousCommandBytes stdin stdout = do
     case parseInput (C8.unpack currentCommandBytes) of
       Nothing -> recurrentSessionHandler currentCommandBytes stdin stdout  
       Just P.Esc -> pure ExitSuccess
-      Just (P.C s)  -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> recurrentSessionHandler BS.empty stdin stdout 
-
-
-    {-
-    case T.unsnoc (TE.decodeUtf8 p) of
-
-      Just (_,'\r') -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> recurrentSessionHandler BS.empty stdin stdout 
-      Just (_,'\ETX') -> pure ExitSuccess
-      _ -> recurrentSessionHandler currentCommandBytes stdin stdout  
--}
+      Just c     -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> recurrentSessionHandler BS.empty stdin stdout 
 
 parseInput :: String -> Maybe P.Command
 parseInput i = case (P.parse' i) of

@@ -34,6 +34,10 @@ main = do
   test_parse' "ls    \ETX" Esc
   test_parse' "2\ETX" $ Esc 
   test_parse' "2 \ETX" $ Esc 
+  test_parse' "cat  asdf.md  \ETX" $ Esc 
+  test_parse' "cat  asdf.md  \r" $ Cat "asdf"
+  test_parse' "cat  asdf\r" $ Esc -- this should fail
+
   --test_parse' "\r"    $ C [] 
   test_p' "\ETX" '\ETX'
 
