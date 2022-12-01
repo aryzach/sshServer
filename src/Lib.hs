@@ -1,16 +1,18 @@
 module Lib (handleSessionRequest) where
 
-import           Data.Default
+import qualified Parser as P
+
+--import           Data.Default
 import           System.Exit
 
 import qualified Data.ByteString               as BS
-import           Data.ByteString.Char8         as C8 hiding (putStrLn, unsnoc, snoc, map, filter, concat)
+import qualified Data.ByteString.Char8         as C8 --hiding (putStrLn, unsnoc, snoc, map, filter, concat,head)
 
 import qualified Data.Text                     as T 
 import qualified Data.Text.Encoding            as TE
 
 import           Network.SSH
-import           Network.SSH.Server            (runServer, socketConfig, transportConfig, userAuthConfig, onAuthRequest, connectionConfig, onSessionRequest, socketBindAddresses, onConnect, SessionHandler, SessionHandler(..)) 
+import           Network.SSH.Server            (SessionHandler, SessionHandler(..)) 
 
 
 handleSessionRequest :: (Show user) => state -> user -> IO (Maybe SessionHandler)
@@ -30,11 +32,24 @@ recurrentSessionHandler previousCommandBytes stdin stdout = do
     p <- receive stdin 1024
     let currentCommandBytes = (BS.append previousCommandBytes p)
     sendAll stdout p
+    case parseInput (C8.unpack currentCommandBytes) of
+      Nothing -> recurrentSessionHandler currentCommandBytes stdin stdout  
+      Just P.Esc -> pure ExitSuccess
+      Just (P.C s)  -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> recurrentSessionHandler BS.empty stdin stdout 
+
+
+    {-
     case T.unsnoc (TE.decodeUtf8 p) of
+
       Just (_,'\r') -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> recurrentSessionHandler BS.empty stdin stdout 
       Just (_,'\ETX') -> pure ExitSuccess
       _ -> recurrentSessionHandler currentCommandBytes stdin stdout  
+-}
 
+parseInput :: String -> Maybe P.Command
+parseInput i = case (P.parse' i) of
+  Left _ -> Nothing
+  Right s -> Just s
 
 packageOutput :: String -> String
 packageOutput s = concat $
@@ -50,12 +65,6 @@ packageOutput s = concat $
 createResponseFromCommand :: String -> String
 createResponseFromCommand = packageOutput . createResponseContent 
 
-data File = Readme | Contact 
-instance Show File where
-  show Readme = "README.md"
-  show Contact = "contact.md"
-
-data Programs = Writeme | Cat File | Ls
 
 --use bitnomial parser to handle incoming commands here
 
