@@ -25,9 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      Files
       Lib
       Parser
-      TestLib
   other-modules:
       Paths_sshServer
   hs-source-dirs:
@@ -36,6 +36,7 @@ library
       base >=4.7 && <5
     , bytestring
     , data-default
+    , directory ==1.3.6.0
     , hssh
     , memory
     , network

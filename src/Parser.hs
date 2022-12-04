@@ -1,8 +1,11 @@
 module Parser where
 
+import Text.Parsec hiding (try)
+import Text.Parsec.String
 import Text.ParserCombinators.Parsec 
-import qualified Text.ParserCombinators.Parsec as PC
 import Control.Monad (void)
+
+import Files (getFiles)
 
 data Command  = Cat String
               | Esc
@@ -33,7 +36,7 @@ cat = do
   string "cat"
   char ' '
   whitespace
-  x <- fileName
+  x <- matchAnyString getFiles
   return $ Cat x
 
 fileName :: Parser String
@@ -59,3 +62,8 @@ pt p input = parse p "(unknown)" input
 
 whitespace :: Parser ()
 whitespace = void $ many $ oneOf " \n\t"
+
+matchAnyString :: [String] -> Parser String
+matchAnyString strs = choice $ map (try . string) strs
+
+

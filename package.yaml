@@ -33,6 +33,7 @@ library:
   - socket
   - hssh
   - parsec
+  - directory == 1.3.6.0
 
 
 executables:
