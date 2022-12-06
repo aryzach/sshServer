@@ -19,26 +19,26 @@ seperator = do
   putStrLn "-------------------"
  
 
-test_parse' = test parse'
-test_p' = test p'
 
 
 main :: IO ()
 main = do
-  test_parse' "ls\r" Ls
-  test_parse' "  ls\r" Ls
-  test_parse' "ls    \r" Ls
-  test_parse' "  ls    \r" Ls
-  test_parse' "ls\ETX" Esc
-  test_parse' "  ls   \ETX" Esc
-  test_parse' "ls    \ETX" Esc
-  test_parse' "2\ETX" $ Esc 
-  test_parse' "2 \ETX" $ Esc 
-  test_parse' "cat  asdf.md  \ETX" $ Esc 
-  test_parse' "cat  asdf.md  \r" $ Cat "asdf"
-  test_parse' "cat  asdf\r" $ Esc -- this should fail
+  test parse' "ls\r" Ls
+  test parse' "  ls\r" Ls
+  test parse' "ls    \r" Ls
+  test parse' "  ls    \r" Ls
+  test parse' "ls\ETX" Esc
+  test parse' "  ls   \ETX" Esc
+  test parse' "ls    \ETX" Esc
+  test parse' "2\ETX" $ Esc 
+  test parse' "2 \ETX" $ Esc 
+  test parse' "cat  asdf.md  \ETX" $ Esc 
+  test parse' "cat  asdf.md  \r" $ Cat "asdf.md"
+  test parse' "cat  asdf\r" $ InvalidCommand -- this should fail
 
   --test_parse' "\r"    $ C [] 
-  test_p' "\ETX" '\ETX'
+  test (test_parser etxParser) "\ETX" '\ETX'
+  test (test_parser escape) "  \ETX" Esc
 
 
+--parseTest (oneOf "aeiou"  >> parserTrace "label") "atest"

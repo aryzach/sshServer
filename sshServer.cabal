@@ -54,6 +54,7 @@ executable main
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , cryptonite
     , data-default
     , hssh
     , sshServer
@@ -63,6 +64,7 @@ test-suite sshServer-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      TestLib
       Paths_sshServer
   hs-source-dirs:
       test

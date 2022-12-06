@@ -48,6 +48,8 @@ executables:
     - sshServer
     - hssh
     - data-default
+    - cryptonite
+
 
 tests:
   sshServer-test:

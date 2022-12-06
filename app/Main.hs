@@ -5,10 +5,12 @@ module Main where
 import           Data.Default
 import           Network.SSH
 import           Network.SSH.Server            (runServer, socketConfig, transportConfig, userAuthConfig, onAuthRequest, connectionConfig, onSessionRequest, socketBindAddresses, onConnect, SessionHandler, SessionHandler(..)) 
+import Crypto.PubKey.Ed25519
 
 import qualified Lib as L
 
-ipAddress = "172.31.14.100"
+--ipAddress = "172.31.14.100"
+ipAddress = "0.0.0.0"
 port = 2024
 
 main :: IO ()

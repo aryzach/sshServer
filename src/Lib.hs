@@ -1,6 +1,7 @@
 module Lib (handleSessionRequest) where
 
 import qualified Parser as P
+import Files (getFiles)
 
 --import           Data.Default
 import           System.Exit
@@ -10,6 +11,7 @@ import qualified Data.ByteString.Char8         as C8 --hiding (putStrLn, unsnoc,
 
 import qualified Data.Text                     as T 
 import qualified Data.Text.Encoding            as TE
+import qualified Data.List as L
 
 import           Network.SSH
 import           Network.SSH.Server            (SessionHandler, SessionHandler(..)) 
@@ -19,7 +21,10 @@ handleSessionRequest :: (Show user) => state -> user -> IO (Maybe SessionHandler
 handleSessionRequest state user = pure $ Just $ SessionHandler $ sessionHandler state user BS.empty
 
 sessionHandler :: (InputStream stdin, OutputStream stdout) => state -> user -> BS.ByteString -> Environment -> Maybe TermInfo -> Maybe Command -> stdin -> stdout -> stderr -> IO ExitCode     
-sessionHandler _ _ previousCommandBytes _ _ _ stdin stdout _ = introHandler stdout >> recurrentSessionHandler previousCommandBytes stdin stdout
+sessionHandler _ _ previousCommandBytes _ _ _ stdin stdout _ = do
+  introHandler stdout 
+--  content <- getContent
+  recurrentSessionHandler previousCommandBytes stdin stdout
 
 introHandler :: OutputStream stdout => stdout -> IO ()
 introHandler stdout = sendAll stdout $ C8.pack $ packageOutput introText
@@ -32,15 +37,35 @@ recurrentSessionHandler previousCommandBytes stdin stdout = do
     p <- receive stdin 1024
     let currentCommandBytes = (BS.append previousCommandBytes p)
     sendAll stdout p
-    case parseInput (C8.unpack currentCommandBytes) of
-      Nothing -> recurrentSessionHandler currentCommandBytes stdin stdout  
-      Just P.Esc -> pure ExitSuccess
-      Just c     -> (sendAll stdout $ C8.pack . createResponseFromCommand . C8.unpack $ currentCommandBytes) >> recurrentSessionHandler BS.empty stdin stdout 
+    case P.parse' (C8.unpack currentCommandBytes) of
+      Left _ -> recurrentSessionHandler currentCommandBytes stdin stdout  
+      Right command -> do
+        cr <- handleCommand command 
+        case cr of 
+          ES   -> pure ExitSuccess
+          CR s -> sendOutput stdout s >> recurrentSessionHandler BS.empty stdin stdout 
+          OtherAction s -> putStrLn "new LINE" >> sendOutput stdout s >> recurrentSessionHandler BS.empty stdin stdout 
 
-parseInput :: String -> Maybe P.Command
-parseInput i = case (P.parse' i) of
-  Left _ -> Nothing
-  Right s -> Just s
+
+      
+handleCommand :: P.Command -> IO CommandResponse
+handleCommand P.Esc = pure ES 
+handleCommand P.InvalidCommand = return $ OtherAction "\n"
+handleCommand P.Ls = do
+  f <- getFiles
+  return $ CR $ L.intercalate " " f
+handleCommand (P.Cat s) = do
+  f <- getFiles 
+  if elem s f 
+  then do
+    contents <- readFile s
+    return $ CR contents
+  else return $ OtherAction "no such file"
+
+data CommandResponse = ES | CR String | OtherAction String
+
+sendOutput :: (OutputStream stdout) => stdout -> String -> IO ()
+sendOutput stdout s = sendAll stdout $ C8.pack $ packageOutput s
 
 packageOutput :: String -> String
 packageOutput s = concat $
@@ -55,9 +80,6 @@ packageOutput s = concat $
 
 createResponseFromCommand :: String -> String
 createResponseFromCommand = packageOutput . createResponseContent 
-
-
---use bitnomial parser to handle incoming commands here
 
 createResponseContent :: String -> String
 createResponseContent userCommand = case stripAll userCommand of
