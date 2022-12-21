@@ -4,16 +4,21 @@ import Text.Parsec hiding (try)
 import Text.Parsec.String
 import Text.ParserCombinators.Parsec 
 import Control.Monad (void)
+import qualified Data.Char as C
 
 
 data Command  = Cat String
               | Esc
               | Ls
               | InvalidCommand
+              | InvalidKey C.Char
               deriving (Eq,Show)
 
+isValidKey :: C.Char -> Bool
+isValidKey k = any (==True) $ map (\f -> f k) [C.isAlphaNum, C.isSpace, (=='\ETX'), (=='\r'), (=='.'), (=='\DEL')]
+
 full :: Parser Command
-full = userCommands <|> try invalid <|> try escape 
+full = userCommands <|> try invalidCommand <|> try escape 
 
 line :: Parser Command -> Parser Command
 line p = do
@@ -39,12 +44,15 @@ cat = do
   x <- fileName
   return $ Cat x
 
-invalid :: Parser Command
-invalid = do
-  --x <- many $ noneOf ['\ETX']
-  --char '\r'
+invalidCommand :: Parser Command
+invalidCommand = do
   manyTill (noneOf ['\ETX']) $ char '\r'
   return $ InvalidCommand
+
+invalidKey :: Parser Command
+invalidKey = do
+  g <- satisfy (\k -> not $ isValidKey k)
+  return $ InvalidKey g
 
 fileName :: Parser String
 fileName = do
@@ -59,8 +67,6 @@ eol = void $ char '\r'
 escape :: Parser Command
 escape = do
   manyTill anyChar $ char '\ETX'
-  --char '\ETX'
-  --endBy (many anyChar) $ char '\ETX'
   return Esc
 
 parse' :: String -> Either ParseError Command

@@ -1,0 +1,19 @@
+[Unit]
+Description=custom sshServer service 
+After=syslog.target
+After=network.target
+
+[Service]
+RestartSec=2s
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/home/ubuntu/sshServer/
+
+ExecStart=sudo -u ubuntu authbind .stack-work/dist/x86_64-linux-tinfo6/Cabal-3.2.1.0/build/main/main
+ExecStop=kill $(ps aux | grep 'stack-work' | awk '{print $2}')
+Restart=always
+Environment=USER=root HOME=/root 
+
+[Install]
+WantedBy=multi-user.target

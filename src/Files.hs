@@ -1,20 +1,10 @@
-module Files (getFiles) where
+module Files (files, contact, aboutthis) where
 
-import System.IO
-import System.Directory
+import qualified Data.Map as M
 
-getFilesInDirectory :: FilePath -> IO [FilePath]
-getFilesInDirectory dirPath = do
-  entries <- getDirectoryContents dirPath
-  let filenames = filter (`notElem` [".", ".."]) entries
-  return filenames
+files = M.fromList [("Contact.md", contact), ("AboutThis.md", aboutthis)]
 
-getFiles = getFilesInDirectory "./files/"
+contact = "\nzach_asmith@yahoo.com  @casserolezach  (248) 917-1520\n"
 
-{-readFile :: String -> IO String
-readFile fn = do
-  file <- openFile fn ReadMode
-  contents <- hGetContents file
-  hClose file
-  pure contents
-  -}
+aboutthis = "\nREADME: github.com/aryzach/sshServer\n"
+

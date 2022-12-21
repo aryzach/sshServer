@@ -5,27 +5,27 @@
 
 packages:
 - completed:
+    name: hssh
+    pantry-tree:
+      sha256: ebc8cba118b7442bcc043d129023c8d5f6c56708b480b8db7962ecff07e9c162
+      size: 4328
+    sha256: a1908b0d20c7bc3a5c33a59f3b5c96a16212196b59fae4f4e777858a060a8176
     size: 81281
     url: https://github.com/aryzach/hssh/archive/53d676e4846cdbaae349fb60b00bb669cc9a88c3.tar.gz
-    name: hssh
     version: 0.1.0.0
-    sha256: a1908b0d20c7bc3a5c33a59f3b5c96a16212196b59fae4f4e777858a060a8176
-    pantry-tree:
-      size: 4328
-      sha256: ebc8cba118b7442bcc043d129023c8d5f6c56708b480b8db7962ecff07e9c162
   original:
     url: https://github.com/aryzach/hssh/archive/53d676e4846cdbaae349fb60b00bb669cc9a88c3.tar.gz
 - completed:
     hackage: socket-unix-0.2.0.0@sha256:8cecd07268b14ba47b13e7855f9862f3ce34a7079ccf21ea97057f6bd4f6fb66,3058
     pantry-tree:
-      size: 796
       sha256: f1f06f8afdbb4686786b3af522965ecc800dc7d4aefb44aca5e35cfd6d72e939
+      size: 796
   original:
     hackage: socket-unix-0.2.0.0@sha256:8cecd07268b14ba47b13e7855f9862f3ce34a7079ccf21ea97057f6bd4f6fb66,3058
 snapshots:
 - completed:
+    sha256: e76d109964d9335abb412e22139c5bce3078be290ac6d90b8ecea6cc009bb198
     size: 590102
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/26.yaml
-    sha256: e76d109964d9335abb412e22139c5bce3078be290ac6d90b8ecea6cc009bb198
   original:
     url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/26.yaml
