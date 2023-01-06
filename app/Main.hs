@@ -11,7 +11,7 @@ import qualified Lib as L
 
 --ipAddress = "172.31.14.100"
 ipAddress = "0.0.0.0"
-port = 2023
+port = 22
 
 main :: IO ()
 main = do
